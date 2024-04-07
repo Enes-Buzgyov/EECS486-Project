@@ -1,3 +1,4 @@
+# Set of funciotns that help us get a basic understanding of comments. Does tf idf, bigrams, etc.
 import os
 from collections import Counter
 import nltk
