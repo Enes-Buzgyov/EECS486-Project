@@ -6,14 +6,21 @@ import datetime
 import operator
 import json
 import os
+import isodate
+import re
+import unicodedata
 
 
 # Hardcoded weights for calculating engagement score
 WEIGHTS = {
-    "likeCount": 0.3,
-    "commentCount": 0.3,
-    "viewCount": 0.3,
-    "engagementRate": 0.1,  # Giving slightly less weight for the engagement rate
+    "likeCount": 0.2,
+    "commentCount": 0.2,
+    "viewCount": 0.2,
+    "engagementRate": 0.15,
+    "timelessness": 0.1,
+    "viewToLikeRatio": 0.05,
+    "relevance": 0.15,
+    "subscriberEngagement": 0.1,
 }
 
 
@@ -23,15 +30,28 @@ def calculate_engagement_score(video_stats):
         + WEIGHTS["commentCount"] * video_stats["commentCount"]
         + WEIGHTS["viewCount"] * video_stats["viewCount"]
         + WEIGHTS["engagementRate"] * video_stats["engagementRate"]
+        + WEIGHTS["timelessness"] * video_stats["timelessness"]
+        + WEIGHTS["viewToLikeRatio"] * video_stats["viewToLikeRatio"]
+        + WEIGHTS["relevance"] * video_stats["relevance"]
+        + WEIGHTS["subscriberEngagement"] * video_stats["subscriberEngagement"]
     )
+    print(f"Engagement Score: {engagement_score}")
     return engagement_score
 
 
-def get_video_ids(youtube, channel_id, max_videos):
+def get_video_ids(youtube, channel_id, max_videos, artist_name, next_page_token=None):
     print(f"Fetching videos for channel ID: {channel_id}")
     video_ids = []
     video_details = {}
-    max_values = {"likeCount": 0, "commentCount": 0, "viewCount": 0}
+    max_values = {
+        "likeCount": 0,
+        "commentCount": 0,
+        "viewCount": 0,
+        "timelessness": 0,
+        "viewToLikeRatio": 0,
+        "relevance": 0,
+        "subscriberEngagement": 0,
+    }
 
     # Fetch video IDs
     request = youtube.search().list(
@@ -40,15 +60,18 @@ def get_video_ids(youtube, channel_id, max_videos):
         maxResults=max_videos,  # Adjust according to your needs
         order="date",  # Fetching the most recent videos
         type="video",
+        pageToken=next_page_token,
     )
     response = request.execute()
 
     for item in response.get("items", []):
         video_ids.append(item["id"]["videoId"])
 
-    # Fetch statistics for each video
+    print(f"Found {len(video_ids)} videos.")
+
+    # Fetch statistics and content details for each video
     stats_request = youtube.videos().list(
-        part="statistics,snippet", id=",".join(video_ids)
+        part="statistics,snippet,contentDetails", id=",".join(video_ids)
     )
     stats_response = stats_request.execute()
 
@@ -56,27 +79,80 @@ def get_video_ids(youtube, channel_id, max_videos):
         video_id = item["id"]
         stats = item["statistics"]
         snippet = item["snippet"]
+        content_details = item["contentDetails"]
+
+        # Filter out YouTube Shorts based on video duration
+        duration = isodate.parse_duration(content_details["duration"])
+        if duration.total_seconds() < 60:  # Adjust the threshold as needed
+            continue
 
         like_count = int(stats.get("likeCount", 0))
         comment_count = int(stats.get("commentCount", 0))
         view_count = int(stats.get("viewCount", 0))
         published_at = datetime.datetime.strptime(
             snippet["publishedAt"], "%Y-%m-%dT%H:%M:%SZ"
-        )
-        time_since_upload = (datetime.datetime.utcnow() - published_at).total_seconds()
+        ).replace(tzinfo=datetime.timezone.utc)
+        time_since_upload = (
+            datetime.datetime.now(datetime.timezone.utc) - published_at
+        ).total_seconds()
 
         # Update max_values if necessary
         max_values["likeCount"] = max(max_values["likeCount"], like_count)
         max_values["commentCount"] = max(max_values["commentCount"], comment_count)
         max_values["viewCount"] = max(max_values["viewCount"], view_count)
+        max_values["timelessness"] = max(max_values["timelessness"], time_since_upload)
+        max_values["viewToLikeRatio"] = max(
+            max_values["viewToLikeRatio"], view_count / (like_count + 1)
+        )
+
+        # Calculate relevance score based on title and description matching
+        title_match = artist_name.lower() in snippet["title"].lower()
+        description_match = artist_name.lower() in snippet["description"].lower()
+        relevance_score = int(title_match) + int(description_match)
+        max_values["relevance"] = max(max_values["relevance"], relevance_score)
+
+        # Calculate subscriber engagement score
+        subscriber_count = int(stats.get("subscriberCount", 0))
+        subscriber_engagement = (like_count + comment_count) / (subscriber_count + 1)
+        max_values["subscriberEngagement"] = max(
+            max_values["subscriberEngagement"], subscriber_engagement
+        )
 
         # Calculate normalized values
         normalized_likes = like_count / max_values["likeCount"]
         normalized_comments = comment_count / max_values["commentCount"]
         normalized_views = view_count / max_values["viewCount"]
+        normalized_timelessness = time_since_upload / max_values["timelessness"]
+        normalized_view_to_like_ratio = (view_count / (like_count + 1)) / max_values[
+            "viewToLikeRatio"
+        ]
+        if max_values["relevance"] != 0:
+            normalized_relevance = relevance_score / max_values["relevance"]
+        else:
+            normalized_relevance = 0
+        normalized_subscriber_engagement = (
+            subscriber_engagement / max_values["subscriberEngagement"]
+        )
         engagement_rate = (
             (like_count + comment_count) / time_since_upload * 3600
         )  # Per hour
+
+        print(f"Video ID: {video_id}")
+        print(f"Like Count: {like_count}, Normalized: {normalized_likes}")
+        print(f"Comment Count: {comment_count}, Normalized: {normalized_comments}")
+        print(f"View Count: {view_count}, Normalized: {normalized_views}")
+        print(
+            f"Timelessness: {time_since_upload}, Normalized: {normalized_timelessness}"
+        )
+        print(
+            f"View-to-Like Ratio: {view_count / (like_count + 1)}, Normalized: {normalized_view_to_like_ratio}"
+        )
+        print(f"Relevance Score: {relevance_score}, Normalized: {normalized_relevance}")
+        print(
+            f"Subscriber Engagement: {subscriber_engagement}, Normalized: {normalized_subscriber_engagement}"
+        )
+        print(f"Engagement Rate: {engagement_rate}")
+        print()
 
         # Store engagement score for each video
         video_stats = {
@@ -84,6 +160,10 @@ def get_video_ids(youtube, channel_id, max_videos):
             "commentCount": normalized_comments,
             "viewCount": normalized_views,
             "engagementRate": engagement_rate,
+            "timelessness": normalized_timelessness,
+            "viewToLikeRatio": normalized_view_to_like_ratio,
+            "relevance": normalized_relevance,
+            "subscriberEngagement": normalized_subscriber_engagement,
         }
         video_details[video_id] = calculate_engagement_score(video_stats)
 
@@ -99,7 +179,10 @@ def get_video_ids(youtube, channel_id, max_videos):
     for video_id in top_video_ids:
         print(f"https://www.youtube.com/watch?v={video_id}")
 
-    return top_video_ids
+    # Get the next page token for pagination
+    next_page_token = response.get("nextPageToken")
+
+    return top_video_ids, next_page_token
 
 
 def save_comments_to_csv(comments, filename):
@@ -125,37 +208,70 @@ def get_comments(youtube, video_id):
                 textFormat="plainText",
             )
             response = request.execute()
-            comments.extend(
-                [
-                    item["snippet"]["topLevelComment"]["snippet"]["textDisplay"]
-                    for item in response.get("items", [])
-                ]
-            )
+
+            for item in response.get("items", []):
+                comment = item["snippet"]["topLevelComment"]["snippet"]["textDisplay"]
+                comments.append(comment)
 
             next_page_token = response.get("nextPageToken")
             if not next_page_token:
                 break
     except HttpError as e:
-        print(f"An HTTP error occurred: {e}")
+        print(f"An HTTP error occurred while fetching comments: {e}")
         return comments  # It returns the comments fetched so far
 
+    print(f"Fetched {len(comments)} comments for video ID: {video_id}")
     return comments
 
 
 def fetch_and_save_comments(api_key, channel_id, artist_name, max_videos=50):
     youtube = build("youtube", "v3", developerKey=api_key)
 
-    video_ids = get_video_ids(youtube, channel_id, 50)
-
     all_comments = []
-    for video_id in video_ids:
-        comments = get_comments(youtube, video_id)
-        all_comments.extend(comments)
+    next_page_token = None
 
-    filename = f"data/{artist_name}_comments.csv"
+    while len(all_comments) < 12000:
+        batch_video_ids, next_page_token = get_video_ids(
+            youtube, channel_id, 50, artist_name, next_page_token
+        )
+
+        for video_id in batch_video_ids:
+            comments = get_comments(youtube, video_id)
+            all_comments.extend(comments)
+
+            if len(all_comments) >= 12000:
+                break
+
+        if not next_page_token:
+            break
+
+        # Normalize artist name
+    filename = f"data/{normalize_artist_name(artist_name)}_comments.csv"
     save_comments_to_csv(all_comments, filename)
     print(f"Comments for {artist_name} saved to {filename}")
     return len(all_comments)
+
+
+def normalize_artist_name(name):
+    # Remove leading/trailing whitespace
+    name = name.strip()
+
+    # Convert to lowercase
+    name = name.lower()
+
+    # Remove any characters that are not alphanumeric, space, or underscore
+    name = re.sub(r"[^a-zA-Z0-9\s_]", "", name)
+
+    # Replace spaces and consecutive underscores with a single underscore
+    name = re.sub(r"[\s_]+", "_", name)
+
+    # Remove leading/trailing underscores
+    name = name.strip("_")
+
+    # Normalize unicode characters
+    name = unicodedata.normalize("NFKD", name).encode("ASCII", "ignore").decode()
+
+    return name
 
 
 def get_channel_resource(youtube, channel_id):
@@ -165,8 +281,12 @@ def get_channel_resource(youtube, channel_id):
     )
     response = request.execute()
 
-    # Assuming there is only one channel matching the ID
-    channel_resource = response["items"][0] if response["items"] else None
+    # Check if the 'items' key exists in the response
+    if "items" in response and response["items"]:
+        channel_resource = response["items"][0]
+    else:
+        channel_resource = None
+        print(f"No channel resource found for channel ID: {channel_id}")
 
     return channel_resource
 
@@ -198,29 +318,21 @@ def fetch(artist_name, channel_id):
 
     youtube = build("youtube", "v3", developerKey=api_key)
 
-    # Assuming max_videos is either predefined or based on your specific requirements
-    max_videos = 5
-    video_ids = get_video_ids(youtube, channel_id, max_videos)
-
-    all_comments = []
-    for video_id in video_ids:
-        comments = get_comments(youtube, video_id)
-        all_comments.extend(comments)
+    all_comments_count = fetch_and_save_comments(api_key, channel_id, artist_name)
 
     # Create a directory named 'data' if it doesn't exist
     if not os.path.exists("data"):
         os.makedirs("data")
 
     filename = f"data/{artist_name}_comments.csv"
-    save_comments_to_csv(all_comments, filename)
     print(f"Comments for {artist_name} saved to {filename}")
 
     # Get the channel resource and save it
     channel_resource = get_channel_resource(youtube, channel_id)
     if channel_resource:
         save_channel_resource_to_file(channel_resource, artist_name)
-    else:
-        print(f"No channel resource found for channel ID: {channel_id}")
+
+    return all_comments_count
 
 
 if __name__ == "__main__":

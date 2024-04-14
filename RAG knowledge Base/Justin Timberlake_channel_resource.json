@@ -1,0 +1,44 @@
+{
+    "kind": "youtube#channel",
+    "etag": "-hYqCvdlI_5ZUhlG-g67anU2r50",
+    "id": "UC-y8ci7xfsu4L3zkSuHae0A",
+    "snippet": {
+        "title": "Justin Timberlake",
+        "description": "Official YouTube channel of the quintessential pop star of the new millennium, an artist who jumped from platform to platform on his way to establishing himself as something bigger than a star but an empire: Justin Timberlake.",
+        "customUrl": "@justintimberlake",
+        "publishedAt": "2006-05-14T03:43:45Z",
+        "thumbnails": {
+            "default": {
+                "url": "https://yt3.ggpht.com/wLfaKZ9yYGW8YwVi2Iff5lWL-AB2DTI60Dr9Swm1_-FYCSbP7kY3pycTmOENMYYIY8Vidohygkw=s88-c-k-c0x00ffffff-no-nd-rj",
+                "width": 88,
+                "height": 88
+            },
+            "medium": {
+                "url": "https://yt3.ggpht.com/wLfaKZ9yYGW8YwVi2Iff5lWL-AB2DTI60Dr9Swm1_-FYCSbP7kY3pycTmOENMYYIY8Vidohygkw=s240-c-k-c0x00ffffff-no-nd-rj",
+                "width": 240,
+                "height": 240
+            },
+            "high": {
+                "url": "https://yt3.ggpht.com/wLfaKZ9yYGW8YwVi2Iff5lWL-AB2DTI60Dr9Swm1_-FYCSbP7kY3pycTmOENMYYIY8Vidohygkw=s800-c-k-c0x00ffffff-no-nd-rj",
+                "width": 800,
+                "height": 800
+            }
+        },
+        "localized": {
+            "title": "Justin Timberlake",
+            "description": "Official YouTube channel of the quintessential pop star of the new millennium, an artist who jumped from platform to platform on his way to establishing himself as something bigger than a star but an empire: Justin Timberlake."
+        }
+    },
+    "contentDetails": {
+        "relatedPlaylists": {
+            "likes": "",
+            "uploads": "UU-y8ci7xfsu4L3zkSuHae0A"
+        }
+    },
+    "statistics": {
+        "viewCount": "7694706466",
+        "subscriberCount": "10600000",
+        "hiddenSubscriberCount": false,
+        "videoCount": "27"
+    }
+}

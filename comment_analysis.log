@@ -1,0 +1,22 @@
+INFO:root:Analyzing comments for artist: Justin Timberlake
+INFO:root:Columns: Index(['cleaned_comment'], dtype='object')
+INFO:root:Number of comments: 9653
+INFO:root:Extracting features using TF-IDF...
+INFO:root:Feature extraction completed.
+INFO:root:Reducing dimensionality using Truncated SVD...
+INFO:root:Dimensionality reduction completed.
+INFO:root:Performing clustering with 10 clusters...
+INFO:root:Clustering completed.
+INFO:root:Analyzing clusters...
+INFO:root:Cluster 1: Top Words - forever, guys, jt, justin, love, much, music, nsync, song, timberlake
+INFO:root:Cluster 2: Top Words - album, good, justin, like, love, music, new, one, song, timberlake
+INFO:root:Cluster 3: Top Words - back, great, jt, justin, like, love, music, performance, song, wow
+INFO:root:Cluster 4: Top Words - cow, cowwww, get, hear, like, song, sound, sounds, tea, tko
+INFO:root:Cluster 5: Top Words - amazing, awesome, beautiful, good, justin, like, love, new, song, thank
+INFO:root:Cluster 6: Top Words - ahead, better, coming, days, know, love, ooh, place, song, way
+INFO:root:Cluster 7: Top Words - album, ca, cant, jt, justin, music, new, omg, song, wait
+INFO:root:Cluster 8: Top Words - amazing, back, best, good, jt, like, love, music, one, song
+INFO:root:Cluster 9: Top Words - album, back, body, im, jt, justin, re, ready, ve, wait
+INFO:root:Cluster 10: Top Words - back, bringing, come, finally, justin, music, nsync, real, sexy, welcome
+INFO:root:Cluster analysis saved to file.
+INFO:root:Performing graph analysis...
