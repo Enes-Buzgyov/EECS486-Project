@@ -60,21 +60,6 @@ Review the output folders to document findings, investigate trends among the fan
 
 **Note**: Be cautious of channel IDs and links returned by the scripts; always verify the accuracy of the retrieved data.
 
-## TODO List:
-
-- **fetch_comments.py**:
-  - Expand contractions.
-  - Perform spell check.
-
-- **baseline.py**:
-  - Enhance graph aesthetics and data presentation.
-
-- **main.py**:
-  - Implement an IR-Evaluation function to compare fanbase rankings with Spotify's rankings.
-  - Calculate metrics like Precision@K and display these.
-
-- **compare_fanbase.py**:
-  - Enhance functionality for deeper insights into fanbase social graphs.
 
 ## License
 
